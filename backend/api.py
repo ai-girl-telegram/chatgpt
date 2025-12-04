@@ -74,6 +74,8 @@ async def remove_free(req:Remove_Free_Zapros,x_signature:str = Header(...),x_tim
 async def check_free(username:str):
     try:
         res = check_free_zapros_amount(username)
+        if not res:
+            raise HTTPException(status_code = status.HTTP_404_NOT_FOUND,detail = "User not found")
         return res
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")

@@ -16,6 +16,7 @@ async def test_check_free():
             "X-API-KEY":os.getenv("API")
         }
         response = await ac.get("/check/free/user1223",headers=head)
+        print(response.text)
         assert response.status_code == 200 
 
 
