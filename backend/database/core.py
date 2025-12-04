@@ -1,5 +1,5 @@
-from database.models import table,metadata_obj
-from database.sql_i import sync_engine
+from models import table,metadata_obj
+from sql_i import sync_engine
 from sqlalchemy import text,select
 
 
@@ -47,4 +47,17 @@ def remove_free_zapros(username:str) -> bool:
             conn.commit()
             return True   
         except Exception as e:
-            raise Exception(f"Error : {e}")       
+            raise Exception(f"Error : {e}")   
+def check_free_zapros_amount(username:str) -> bool:
+    if not is_user_exists(username):
+        return False
+    with sync_engine.connect() as conn:
+        try:
+            stmt = select(table.c.free).where(table.c.username == username)
+            res = conn.execute(stmt)
+            data = res.fetchone()[0]
+            return data > 0
+        except Exception as e:
+            raise Exception(f"Error : {e}")     
+          
+            

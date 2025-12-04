@@ -1,6 +1,6 @@
 from sqlalchemy import URL,text,create_engine
-from database.config import connect
-from database.models import metadata_obj,table
+from config import connect
+from models import metadata_obj,table
 
 
 
