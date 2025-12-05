@@ -73,6 +73,14 @@ def buy_zaproses(username:str,amount:int) -> bool:
             return True
         except Exception as e:
             raise Exception(f"Error : {e}")
+def remove_buy_zapros(username:str) -> bool:
+    if not is_user_exists(username):
+        return False
+    with sync_engine.connect() as conn:
+        try:
+            pass
+        except Exception as e:
+            raise Exception(f"Error : {e}")        
 def debug():
     pass        
           

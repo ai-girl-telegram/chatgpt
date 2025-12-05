@@ -1,6 +1,7 @@
 from fastapi import FastAPI,HTTPException,Depends,Request,Header,status
 from pydantic import BaseModel
 from typing import List,Optional
+from ai.olama import OllamaAPI
 import uvicorn
 import hmac
 import hashlib
@@ -16,6 +17,7 @@ from database.core import start,remove_free_zapros,check_free_zapros_amount,buy_
 
 load_dotenv()
 app = FastAPI()
+ai = OllamaAPI()
 
 
 @app.get("/")
@@ -79,6 +81,31 @@ async def check_free(username:str):
         return res
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")
+def get_girl_promt(name:str) -> bool:
+    try:
+        with open("json/gr.json","r") as file:
+            data = json.load(file)
+        return data[name]    
+    except Exception as e:
+        raise KeyError(f"Error : {e}")
+
+
+
+class AskAi(BaseModel):
+    username:str
+    message:str
+    who_girl:str
+@app.post("/ask")
+async def ask_ai(req:AskAi,x_signature:str = Header(...),x_timestamp:str = Header(...)):
+    if not verify_signature(req.model_dump(),x_signature,x_timestamp):
+        raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,detail = "Invalid signature")
+    try:
+        messages = [{"role": "system", "content": get_girl_promt(req.who_girl)},
+        {"role": "user", "content": "Привет!"},]
+        response = ai.chat(messages)
+        return response
+    except Exception as e:
+        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = "Invalid signature")       
 
 if __name__ == "__main__":
     uvicorn.run(app,host = "0.0.0.0",port = 8080)
