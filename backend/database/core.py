@@ -1,5 +1,5 @@
-from database.models import table,metadata_obj
-from database.sql_i import sync_engine
+from models import table,metadata_obj
+from sql_i import sync_engine
 from sqlalchemy import text,select
 
 
@@ -73,15 +73,21 @@ def buy_zaproses(username:str,amount:int) -> bool:
             return True
         except Exception as e:
             raise Exception(f"Error : {e}")
-def remove_buy_zapros(username:str) -> bool:
+def remove_payed_zapros(username:str) -> bool:
     if not is_user_exists(username):
         return False
     with sync_engine.connect() as conn:
         try:
-            pass
+            stmt = select(table.c.sub).where(table.c.username == username)
+            res = conn.execute(stmt)
+            data = res.fetchone()[0]
+            if not data:
+                return False
+            update_stmt = table.update().where(table.c.username == username).values(sub = data - 1)
         except Exception as e:
             raise Exception(f"Error : {e}")        
 def debug():
-    pass        
+    print(check_free_zapros_amount("user"))
+debug()         
           
             
