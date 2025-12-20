@@ -1,0 +1,14 @@
+from sqlalchemy import Table,MetaData,String,Column,ARRAY
+
+
+metadata_obj = MetaData()
+
+chats_table = Table(
+    "ai_girl_table",
+    metadata_obj,
+    Column("username",String),
+    Column("id",String,primary_key=True),
+    Column("message",String),
+    Column("files",ARRAY(String)),
+    Column("response",String)
+)

@@ -97,8 +97,6 @@ def get_all_data():
             return res.fetchall()
         except Exception as e:
             raise Exception(f"Error : {e}")          
-def debug():
-    print(check_free_zapros_amount("user"))
 
           
             
