@@ -98,5 +98,4 @@ def get_all_data():
         except Exception as e:
             raise Exception(f"Error : {e}")          
 
-          
-            
+print(get_all_data())      
