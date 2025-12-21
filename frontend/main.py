@@ -14,6 +14,9 @@ BASE_URL = "http://0.0.0.0:8080"
 
 bot  = telebot.TeleBot(TOKEN)
 
+
+chat_indicator:bool = False
+
 def generate_siganture(data:dict) -> str:
     KEY = os.getenv("SIGNATURE")
     data_to_ver = data.copy()
@@ -40,11 +43,36 @@ def start_api(username:str) -> bool:
 def start_bot(message):
     user_id = message.from_user.id
     res = start_api(str(user_id))
+    global chat_indicator
+    chat_indicator = False
     bot.send_message(message.chat.id,"Welcome")
+
+def ask_ai(username:str,message:str,who_girl:str):
+    data = {
+        "username":username,
+        "message":message,
+        "who_girl":who_girl
+    }
+    headers = {
+        "X-Signature":generate_siganture(data),
+        "X-Timestamp":str(int(time.time()))
+    }
+    res = requests.post(f"{BASE_URL}/ask",json = data,headers= headers)
+
 
 @bot.message_handler(["chat"])
 def start_chat(message):
+    global chat_indicator
+    chat_indicator = True
+@bot.message_handler(func=lambda message: True)
+def handle_all_messages(message):
     user_id = message.from_user.id
+    
+    if chat_indicator:
+       pass
+    else:
+        # Если не в режиме чата, обрабатываем обычные команды
+        bot.send_message(user_id, "Используй /chat для начала диалога")    
 
 
 bot.polling(non_stop=True)

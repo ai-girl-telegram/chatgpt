@@ -9,7 +9,7 @@ import json
 import os
 import time
 from dotenv import load_dotenv
-from database.core import start,remove_free_zapros,check_free_zapros_amount,buy_zaproses,remove_payed_zapros
+from database.core import start,remove_free_zapros,check_free_zapros_amount,buy_zaproses,remove_payed_zapros,get_amount_of_zaproses
 
 
 
@@ -147,7 +147,17 @@ async def buy_zaproses_api(req:BuyZaproses,x_signature:str = Header(...),x_times
         raise HTTPException(status_code = status.HTTP_409_CONFLICT,detail = "Something went wrong")
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")    
-
+class GetUserZap(BaseModel):
+    username:str
+@app.post("/user/req")
+async def get_user_req(req:GetUserZap,x_signature:str = Header(...),x_timestamp:str = Header(...)):
+    if not verify_signature(req.model_dump(),x_signature,x_timestamp):
+        raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,detail = "Invalid signature")
+    try:
+        amount:int = get_amount_of_zaproses(req.username)
+        return amount > 0
+    except Exception as e:
+        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")    
 
 if __name__ == "__main__":
     uvicorn.run(app,host = "0.0.0.0",port = 8080)

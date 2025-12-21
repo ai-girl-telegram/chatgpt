@@ -101,6 +101,10 @@ def get_amount_of_zaproses(username:str) -> int:
     with sync_engine.connect() as conn:
         try:
             stmt = select(table.c.zap).where(username == username)
+            res = conn.execute(stmt)
+            data = res.fetchone()
+            if data is not None:
+                return int(data[0])
         except Exception as e:
             return Exception(f"Error : {e}")  
      
