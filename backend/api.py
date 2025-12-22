@@ -10,7 +10,7 @@ import os
 import time
 from dotenv import load_dotenv
 from database.core import start,remove_free_zapros,check_free_zapros_amount,buy_zaproses,remove_payed_zapros,get_amount_of_zaproses
-
+from database.chats_database.chats_core import write_message,get_all_user_messsages,delete_message
 
 
 
@@ -105,6 +105,7 @@ def get_allowed_() -> List[str]:
 class AskAi(BaseModel):
     username:str
     message:str
+    files:List[str]
 @app.post("/ask")
 async def ask_ai(req:AskAi,x_signature:str = Header(...),x_timestamp:str = Header(...)):
     if not verify_signature(req.model_dump(),x_signature,x_timestamp):
@@ -115,6 +116,7 @@ async def ask_ai(req:AskAi,x_signature:str = Header(...),x_timestamp:str = Heade
         messages = [{"role": "system", "content": get_girl_promt(req.who_girl)},
         {"role": "user", "content": req.message},]
         response = ai.chat(messages)
+        write_message(req.username,req.message,response,req.files)
         return response
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = "Invalid signature")       

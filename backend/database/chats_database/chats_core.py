@@ -1,6 +1,6 @@
 from sqlalchemy import select,delete,update
-from chats_models  import metadata_obj,chats_table
-from chat_sqli import sync_engine
+from database.chats_database.chats_models  import metadata_obj,chats_table
+from database.chats_database.chat_sqli import sync_engine
 from typing import Optional,List 
 import uuid
 
@@ -47,4 +47,3 @@ def get_all_user_messsages(username:str):
             return data 
         except Exception as e:
             return Exception(f"Error : {e}")        
-print(get_all_user_messsages("user1"))

@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from chat_config import connect
+from database.chats_database.chat_config import connect
 
 
 sync_engine =  create_engine(
