@@ -14,6 +14,16 @@ import os
 from datetime import datetime
 from collections import defaultdict
 from typing import Optional
+import io
+import os
+from typing import Optional, Tuple
+import logging
+from PIL import Image, ImageSequence
+import pytesseract
+import PyPDF2
+from pdf2image import convert_from_bytes
+import pandas as pd
+import warnings
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import (
@@ -67,6 +77,126 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+def extract_text_from_file(file_bytes: bytes, filename: str, lang: str = 'rus+eng') -> Tuple[str, bool]:
+    
+    # Определяем расширение файла
+    ext = os.path.splitext(filename)[1].lower()
+    
+    try:
+        # ========== ТЕКСТОВЫЕ ФАЙЛЫ ==========
+        if ext == '.txt':
+            text = file_bytes.decode('utf-8', errors='ignore')
+            return text.strip(), False
+        
+        # ========== PDF ФАЙЛЫ ==========
+        elif ext == '.pdf':
+            # Попытка 1: Извлечь текст напрямую (если PDF содержит текст)
+            try:
+                pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
+                text = ''
+                for page_num in range(len(pdf_reader.pages)):
+                    page = pdf_reader.pages[page_num]
+                    text += page.extract_text() + '\n\n'
+                
+                if text.strip():  # Если текст извлечен успешно
+                    return text.strip(), False
+            except Exception as e:
+                logger.debug(f"Не удалось извлечь текст из PDF напрямую: {e}")
+            
+            # Попытка 2: Конвертировать PDF в изображения и использовать OCR
+            try:
+                images = convert_from_bytes(file_bytes)
+                ocr_text = []
+                
+                for i, image in enumerate(images):
+                    # Конвертируем PIL Image в bytes для OCR
+                    img_byte_arr = io.BytesIO()
+                    image.save(img_byte_arr, format='PNG')
+                    img_byte_arr = img_byte_arr.getvalue()
+                    
+                    page_text = extract_text_from_image(img_byte_arr, lang)
+                    if page_text:
+                        ocr_text.append(f"--- Страница {i+1} ---\n{page_text}")
+                
+                text = '\n\n'.join(ocr_text)
+                return text.strip(), True
+            except Exception as e:
+                logger.error(f"Ошибка OCR для PDF: {e}")
+                return "Не удалось обработать PDF файл", True
+        
+        # ========== ТАБЛИЦЫ EXCEL/CSV ==========
+        elif ext in ['.xlsx', '.xls']:
+            try:
+                # Читаем Excel файл
+                excel_data = pd.read_excel(io.BytesIO(file_bytes))
+                
+                # Конвертируем в текст
+                text_lines = []
+                for sheet_name in excel_data.keys() if isinstance(excel_data, dict) else ['Sheet1']:
+                    if isinstance(excel_data, dict):
+                        df = excel_data[sheet_name]
+                    else:
+                        df = excel_data
+                    
+                    text_lines.append(f"=== {sheet_name} ===")
+                    
+                    # Добавляем заголовки
+                    headers = ' | '.join([str(col) for col in df.columns])
+                    text_lines.append(headers)
+                    text_lines.append('-' * len(headers))
+                    
+                    # Добавляем данные
+                    for index, row in df.iterrows():
+                        row_text = ' | '.join([str(val) for val in row.values])
+                        text_lines.append(row_text)
+                    
+                    text_lines.append('')  # Пустая строка между таблицами
+                
+                text = '\n'.join(text_lines)
+                return text.strip(), False
+            except Exception as e:
+                logger.error(f"Ошибка чтения Excel: {e}")
+                return f"Ошибка чтения Excel файла: {e}", False
+        
+        elif ext == '.csv':
+            try:
+                # Пытаемся определить кодировку
+                for encoding in ['utf-8', 'cp1251', 'iso-8859-1']:
+                    try:
+                        df = pd.read_csv(io.BytesIO(file_bytes), encoding=encoding)
+                        break
+                    except:
+                        continue
+                
+                text = df.to_string(index=False)
+                return text.strip(), False
+            except Exception as e:
+                logger.error(f"Ошибка чтения CSV: {e}")
+                return f"Ошибка чтения CSV файла: {e}", False
+        
+        # ========== ИЗОБРАЖЕНИЯ ==========
+        elif ext in ['.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff', '.tif', '.webp']:
+            text = extract_text_from_image(file_bytes, lang)
+            return text.strip(), True
+        
+        # ========== НЕИЗВЕСТНЫЙ ФОРМАТ ==========
+        else:
+            # Пытаемся обработать как изображение (на всякий случай)
+            try:
+                text = extract_text_from_image(file_bytes, lang)
+                if text.strip():
+                    return text.strip(), True
+                else:
+                    return f"Формат {ext} не поддерживается для извлечения текста", False
+            except:
+                return f"Формат {ext} не поддерживается", False
+    
+    except Exception as e:
+        logger.error(f"Ошибка обработки файла {filename}: {e}")
+        return f"Ошибка обработки файла: {str(e)}", False
+
 
 # ==================== КЛАВИАТУРЫ ====================
 
@@ -278,6 +408,17 @@ async def echo_message(message: Message):
         reply_markup=get_chat_keyboard() if "чат" in user_text.lower() else get_main_keyboard()
     )
 
+@dp.message(F.document)
+async def handle_document(message: Message):
+    # Скачиваем файл
+    file = await bot.get_file(message.document.file_id)
+    file_bytes = await bot.download_file(file.file_path)
+    
+    # Извлекаем текст
+    result = await extract_text_from_file(file_bytes, message.document.file_name)
+    
+    # Отправляем результат
+    await message.answer(result)
 # ==================== ОБРАБОТКА ФАЙЛОВ-ИЗОБРАЖЕНИЙ ====================
 
 @dp.message(F.document)
