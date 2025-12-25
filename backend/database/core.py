@@ -40,7 +40,7 @@ def remove_free_zapros(username:str) -> bool:
             count = int(data[0])
             if count != 10:
                 count -= 1
-            update_stmt = table.update().where(table.c.username == username).values(free = count) 
+            update_stmt = table.update().where(table.c.username == username).values(zap = count) 
             conn.execute(update_stmt)
             conn.commit()
             return True   
