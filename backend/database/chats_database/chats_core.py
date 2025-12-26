@@ -54,4 +54,4 @@ def delete_all_messages(username:str):
             conn.execute(stmt)
             conn.commit()
         except Exception as e:
-            return Exception(f"Error : {e}")             
+            return Exception(f"Error : {e}")                    

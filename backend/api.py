@@ -9,7 +9,7 @@ import json
 import os
 import time
 from dotenv import load_dotenv
-from database.core import start,remove_free_zapros,check_free_zapros_amount,buy_zaproses,remove_payed_zapros,get_amount_of_zaproses,is_user_subbed,create_table,get_all_data
+from database.core import start,remove_free_zapros,check_free_zapros_amount,buy_zaproses,remove_payed_zapros,get_amount_of_zaproses,is_user_subbed,create_table,get_all_data,get_me,subscribe
 from database.chats_database.chats_core import write_message,get_all_user_messsages,delete_message
 
 
@@ -17,7 +17,6 @@ from database.chats_database.chats_core import write_message,get_all_user_messsa
 load_dotenv()
 app = FastAPI()
 ai = OllamaAPI()
-print(get_all_data())
 
 
 
@@ -42,13 +41,11 @@ def verify_signature(data:dict,signature:str,timestamp:str) -> bool:
     expected = hmac.new(KEY.encode(),data_str.encode(),hashlib.sha256).hexdigest()
     return hmac.compare_digest(signature,expected)
 
-#------- SECURITY -------
-
-
-class Start(BaseModel):
+class UsernameOnly(BaseModel):
     username:str
+
 @app.post("/start")
-async def start_user(req:Start,x_signature:str = Header(...),x_timestamp:str = Header(...)):
+async def start_user(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:str = Header(...)):
     if not verify_signature(req.model_dump(),x_signature,x_timestamp):
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,detail = "Invalid signature")
     try:
@@ -59,10 +56,9 @@ async def start_user(req:Start,x_signature:str = Header(...),x_timestamp:str = H
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")
 
-class Remove_Free_Zapros(BaseModel):
-    username:str
+
 @app.post("/remove/free")
-async def remove_free(req:Remove_Free_Zapros,x_signature:str = Header(...),x_timestamp:str = Header(...)):
+async def remove_free(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:str = Header(...)):
     if not verify_signature(req.model_dump(),x_signature,x_timestamp):
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,detail = "Invalid signature")
     try:
@@ -107,6 +103,7 @@ class AskAi(BaseModel):
     username:str
     message:str
     text_form_files:str
+
 @app.post("/ask")
 async def ask_ai(req:AskAi,x_signature:str = Header(...),x_timestamp:str = Header(...)):
     if not verify_signature(req.model_dump(),x_signature,x_timestamp):
@@ -121,10 +118,11 @@ async def ask_ai(req:AskAi,x_signature:str = Header(...),x_timestamp:str = Heade
         return response
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = "Invalid signature")       
-class RemovePayed_Request(BaseModel):
-    username:str
+    
+
+
 @app.post("/remove/payed")
-async def remove_payed(req:RemovePayed_Request,x_signature:str = Header(...),x_timestamp:str = Header(...)):
+async def remove_payed(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:str = Header(...)):
     if not verify_signature(req.model_dump(),x_signature,x_timestamp):
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,detail = "Invalid signature")
     try:
@@ -138,6 +136,7 @@ async def remove_payed(req:RemovePayed_Request,x_signature:str = Header(...),x_t
 class BuyZaproses(BaseModel):
     username:str
     amount:int
+
 @app.post("/buy/zaproses")
 async def buy_zaproses_api(req:BuyZaproses,x_signature:str = Header(...),x_timestamp:str = Header(...)):
     if not verify_signature(req.model_dump(),x_signature,x_timestamp):
@@ -149,10 +148,11 @@ async def buy_zaproses_api(req:BuyZaproses,x_signature:str = Header(...),x_times
         raise HTTPException(status_code = status.HTTP_409_CONFLICT,detail = "Something went wrong")
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")    
-class GetUserZap(BaseModel):
-    username:str
+    
+
+
 @app.post("/user/req")
-async def get_user_req(req:GetUserZap,x_signature:str = Header(...),x_timestamp:str = Header(...)):
+async def get_user_req(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:str = Header(...)):
     if not verify_signature(req.model_dump(),x_signature,x_timestamp):
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,detail = "Invalid signature")
     try:
@@ -161,10 +161,10 @@ async def get_user_req(req:GetUserZap,x_signature:str = Header(...),x_timestamp:
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")    
 
-class IsUserSubed(BaseModel):
-    username:str
+
+
 @app.post("/is_user_subbed")
-async def is_user_subbed_api(req:IsUserSubed,x_signature:str = Header(...),x_timestamp:str = Header(...)):
+async def is_user_subbed_api(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:str = Header(...)):
     if not verify_signature(req.model_dump(),x_signature,x_timestamp):
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Invalid signature")
     try:
@@ -173,7 +173,18 @@ async def is_user_subbed_api(req:IsUserSubed,x_signature:str = Header(...),x_tim
             return res
         raise HTTPException(status_code = status.HTTP_404_NOT_FOUND,detail  = "User not found")
     except Exception as e:
-        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error  : {e}")    
+        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error  : {e}")   
+    
+
+
+@app.post("/subscribe") 
+async def subscibe_api(req:UsernameOnly,x_signature:str,x_timestamp:str):
+    if not verify_signature(req.modle_dump(),x_signature,x_timestamp):
+        raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,detail = "Invalid signature")
+    try:
+        subscribe(req.username)
+    except Exception as e:
+        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")   
 
 if __name__ == "__main__":
     uvicorn.run(app,host = "0.0.0.0",port = 8080)

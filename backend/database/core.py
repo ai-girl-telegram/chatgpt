@@ -1,7 +1,8 @@
 from database.models import table,metadata_obj
 from database.sql_i import sync_engine
-from sqlalchemy import text,select
+from sqlalchemy import text,select,and_
 from datetime import datetime,timedelta
+from typing import List
 
 def create_table():
     #metadata_obj.drop_all(sync_engine)
@@ -141,4 +142,31 @@ def is_user_subbed(username:str) -> bool:
             return 0
         except Exception as e:
             return Exception(f"Error : {e}")        
-            
+def get_me(username:str) -> dict:
+    with sync_engine.connect() as conn:
+        try:
+            stmt = select(table).where(table.c.username == username)
+            res = conn.execute(stmt)
+            data = res.fetchall()
+            if data is not None:
+                user_data = data[0]
+                return {
+                    "username":user_data[0],
+                    "free requests":user_data[2],
+                    "subscribed":user_data[3],
+                    "date of subscribtion to end":user_data[4]
+                }
+        except Exception as e:
+            return Exception(f"Error : {e}") 
+def unsub_all_users_whos_sub_is_ending_today() -> List[str]:           
+    with sync_engine.connect() as conn:
+        try:
+            stmt = select(table.c.username).where(and_(
+                table.c.sub == True,
+                table.c.date == datetime.now().date()
+            ))
+            res = conn.execute(stmt)
+            data = res.fetchall()
+            # havent writen yet (tired)
+        except Exception as e:
+            return Exception(f"Error : {e}")    
