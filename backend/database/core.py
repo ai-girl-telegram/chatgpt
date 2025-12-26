@@ -113,6 +113,9 @@ def get_amount_of_zaproses(username:str) -> int:
         except Exception as e:
             return Exception(f"Error : {e}")  
 def subscribe(username:str):
+    is_subbed = is_user_subbed(username)
+    if is_subbed['res']:
+        return
     with sync_engine.connect() as conn:
         try:
             date_exp = datetime.now().date() + timedelta(days=30)

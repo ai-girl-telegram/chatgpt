@@ -178,13 +178,27 @@ async def is_user_subbed_api(req:UsernameOnly,x_signature:str = Header(...),x_ti
 
 
 @app.post("/subscribe") 
-async def subscibe_api(req:UsernameOnly,x_signature:str,x_timestamp:str):
-    if not verify_signature(req.modle_dump(),x_signature,x_timestamp):
+async def subscibe_api(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:str = Header(...)):
+    if not verify_signature(req.model_dump(),x_signature,x_timestamp):
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,detail = "Invalid signature")
     try:
         subscribe(req.username)
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")   
+
+@app.post("/getme")
+async def get_me_api(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:str = Header(...)):
+    if not verify_signature(req.model_dump(),x_signature,x_timestamp):
+        raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,detail = "Invalid signature")
+    try:
+        user_data = get_me(req.username)
+        if user_data is not None:
+            return user_data
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND,detail = "User not found")
+    except Exception as e:
+        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")
+
+print(get_all_data())
 
 if __name__ == "__main__":
     uvicorn.run(app,host = "0.0.0.0",port = 8080)

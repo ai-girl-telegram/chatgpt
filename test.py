@@ -48,6 +48,20 @@ def is_user_subed(username:str):
         raise Exception(f"Error : {e}")
 def subscribe(username:str):
     try:
-        pass
+        url = f"{BASE_URl}/subscribe"
+        data = {
+            "username":username
+        }
+        headers = {
+            "X-Signature":generate_siganture(data),
+            "X-Timestamp":str(int(time.time()))
+        }
+        resp = requests.post(url,json = data,headers=headers)
+        if resp.status_code != 200:
+            return KeyError("Error user not found")
+        else:
+            print(resp.text)
+            return resp.json()
     except Exception as e:
         raise Exception(f"Error : {e}")
+print(subscribe("ivan_user_test1"))
