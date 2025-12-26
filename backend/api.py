@@ -9,15 +9,15 @@ import json
 import os
 import time
 from dotenv import load_dotenv
-from database.core import start,remove_free_zapros,check_free_zapros_amount,buy_zaproses,remove_payed_zapros,get_amount_of_zaproses,is_user_subbed
-from database.chats_database.chats_core import write_message,get_all_user_messsages,delete_message,create_table,get_all_data
-
+from database.core import start,remove_free_zapros,check_free_zapros_amount,buy_zaproses,remove_payed_zapros,get_amount_of_zaproses,is_user_subbed,create_table,get_all_data
+from database.chats_database.chats_core import write_message,get_all_user_messsages,delete_message
 
 
 
 load_dotenv()
 app = FastAPI()
 ai = OllamaAPI()
+
 
 
 @app.get("/")
