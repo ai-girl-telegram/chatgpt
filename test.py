@@ -46,3 +46,8 @@ def is_user_subed(username:str):
             return resp.json()["res"]
     except Exception as e:
         raise Exception(f"Error : {e}")
+def subscribe(username:str):
+    try:
+        pass
+    except Exception as e:
+        raise Exception(f"Error : {e}")
