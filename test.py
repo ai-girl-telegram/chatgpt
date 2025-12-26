@@ -24,10 +24,25 @@ def start(username:str) -> bool:
         "username":username
     }
     headers = {
-        "X-Sgnature":generate_siganture(data),
+        "X-Signature":generate_siganture(data),
         "X-Timestamp":str(int(time.time()))
     }
     resp = requests.post(url,json = data,headers= headers)
     return resp.status_code == 200
-
-
+def is_user_subed(username:str):
+    try:
+        url = f"{BASE_URl}/is_user_subbed"
+        data = {
+            "username":username
+        }
+        headers = {
+            "X-Signature":generate_siganture(data),
+            "X-Timestamp":str(int(time.time()))
+        }
+        resp = requests.post(url,json = data,headers=headers)
+        if resp.status_code != 200:
+            return KeyError("Error user not found")
+        else:
+            return resp.json()["res"]
+    except Exception as e:
+        raise Exception(f"Error : {e}")
