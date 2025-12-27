@@ -63,4 +63,15 @@ def get_me_request(username:str):
         return False
     else:
         return resp.json()
-print(get_me_request("ivan2"))    
+def minus_one_free_zapros(username:str) -> bool:
+    url = f"{BASE_URl}/remove/free"
+    data = {
+        "username":username
+    }
+    headers = {
+        "X-Signature":generate_siganture(data),
+        "X-Timestamp":str(int(time.time()))
+    }
+    resp = requests.post(url,json = data,headers=headers)
+    print(resp.json())
+    return resp.status_code == 200
