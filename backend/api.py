@@ -49,7 +49,7 @@ async def start_user(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:
     if not verify_signature(req.model_dump(),x_signature,x_timestamp):
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,detail = "Invalid signature")
     try:
-        res = start(req.username)
+        res = await start(req.username)
         if res:
             return res
         raise HTTPException(status_code = status.HTTP_409_CONFLICT,detail = "Start gone wrong")
@@ -198,10 +198,13 @@ async def get_me_api(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")
 
-async def test():
-    res = await is_user_exists("ivan")
+async def test1():
+    res = await start("ivan")
     return res
-print(asyncio.run(test())) 
+async def test2():
+    res = await get_all_data()
+    return res
+print(asyncio.run(test2()))
 
 if __name__ == "__main__":
     uvicorn.run(app,host = "0.0.0.0",port = 8080)
