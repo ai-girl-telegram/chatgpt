@@ -9,10 +9,10 @@ import json
 import os
 import time
 from dotenv import load_dotenv
-from database.core import start,remove_free_zapros,check_free_zapros_amount,buy_zaproses,remove_payed_zapros,get_amount_of_zaproses,is_user_subbed,create_table,get_all_data,get_me,subscribe,is_user_exists
+from database.core import remove_free_zapros,check_free_zapros_amount,buy_zaproses,remove_payed_zapros,get_amount_of_zaproses,is_user_subbed,create_table,get_all_data,get_me,subscribe,is_user_exists,create_deafault_user_data
 from database.chats_database.chats_core import write_message,get_all_user_messsages,delete_message
 import asyncio
-
+import atexit
 
 load_dotenv()
 app = FastAPI()
@@ -49,9 +49,11 @@ async def start_user(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:
     if not verify_signature(req.model_dump(),x_signature,x_timestamp):
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,detail = "Invalid signature")
     try:
-        res = await start(req.username)
+        res = await create_deafault_user_data(req.username)
         if res:
-            return res
+            return {
+                "res":res
+            }
         raise HTTPException(status_code = status.HTTP_409_CONFLICT,detail = "Start gone wrong")
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")
@@ -163,25 +165,14 @@ async def get_user_req(req:UsernameOnly,x_signature:str = Header(...),x_timestam
 
 
 
-@app.post("/is_user_subbed")
-async def is_user_subbed_api(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:str = Header(...)):
-    if not verify_signature(req.model_dump(),x_signature,x_timestamp):
-        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Invalid signature")
-    try:
-        res = await is_user_subbed(req.username)
-        if type(res) == bool:
-            return res
-        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND,detail  = "User not found")
-    except Exception as e:
-        raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error  : {e}")   
-    
-
-
 @app.post("/subscribe") 
 async def subscibe_api(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:str = Header(...)):
     if not verify_signature(req.model_dump(),x_signature,x_timestamp):
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,detail = "Invalid signature")
     try:
+        user_subbed = await is_user_subbed(req.username)
+        if user_subbed:
+            raise HTTPException(status_code = status.HTTP_409_CONFLICT,detail = "User already subbed")
         await subscribe(req.username)
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")   
@@ -198,13 +189,20 @@ async def get_me_api(req:UsernameOnly,x_signature:str = Header(...),x_timestamp:
     except Exception as e:
         raise HTTPException(status_code = status.HTTP_400_BAD_REQUEST,detail = f"Error : {e}")
 
+
+
 async def test1():
-    res = await start("ivan")
+    res = await start_user("ivan")
     return res
 async def test2():
     res = await get_all_data()
     return res
-
+async def test3():
+    res = await is_user_exists("ivan")
+    return res
+async def test4():
+    res = await is_user_subbed("ivan2")
+    return res
 
 if __name__ == "__main__":
     uvicorn.run(app,host = "0.0.0.0",port = 8080)

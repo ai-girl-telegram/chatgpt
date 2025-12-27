@@ -7,6 +7,9 @@ import asyncpg
 import os
 from dotenv import load_dotenv
 from database.models import metadata_obj,table
+import asyncio
+import atexit
+
 
 load_dotenv()
 
@@ -41,7 +44,7 @@ async def is_user_exists(username:str) -> bool:
            return True
        return False 
 
-async def start(username:str) -> bool:
+async def create_deafault_user_data(username:str) -> bool:
     if await is_user_exists(username):
         return False
     async with AsyncSession(async_engine) as conn:
@@ -151,9 +154,6 @@ async def get_amount_of_zaproses(username:str) -> int:
         
 
 async def subscribe(username:str):
-    is_subbed = await is_user_subbed(username)
-    if is_subbed['res']:
-        return
     async with AsyncSession(async_engine) as conn:
         try:
             async with conn.begin():
@@ -161,7 +161,7 @@ async def subscribe(username:str):
                 stmt = table.update().where(table.c.username == username).values(sub = True,date = str(date_exp))
                 await conn.execute(stmt)
         except Exception as e:
-            return Exception(f"Error : {e}")
+            raise Exception(f"Error : {e}")
         
 
 async def set_sub_bac_to_false(username:str):
@@ -175,18 +175,18 @@ async def set_sub_bac_to_false(username:str):
         
 
 async def is_user_subbed(username:str) -> bool:
+    if not await is_user_exists(username):
+        return False
     async with AsyncSession(async_engine) as conn:
         try:
             stmt = select(table.c.sub).where(table.c.username == username)
             res = await conn.execute(stmt)
-            data = await res.scalar_one_or_none()
+            data =  res.scalar_one_or_none()
             if data is not None:
-                return {
-                    "res":bool(data[0])
-                }
-            return 0
+               return bool(data)
+            return False
         except Exception as e:
-            return Exception(f"Error : {e}")  
+            raise Exception(f"Error : {e}")  
 
 
 async def get_me(username:str) -> dict:
@@ -217,4 +217,14 @@ async def unsub_all_users_whos_sub_is_ending_today() -> List[str]:
             print(data)
         except Exception as e:
             return Exception(f"Error : {e}")    
-        
+def cleanup():
+    """Очистка при завершении"""
+    try:
+        # Получаем текущий event loop если он есть
+        loop = asyncio.get_event_loop()
+        if not loop.is_closed():
+            # Запускаем dispose в существующем loop
+            loop.run_until_complete(async_engine.dispose())
+    except:
+        pass   
+atexit.register(cleanup)        
