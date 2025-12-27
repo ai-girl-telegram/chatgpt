@@ -194,7 +194,7 @@ async def get_me(username:str) -> dict:
         try:
             stmt = select(table).where(table.c.username == username)
             res = await conn.execute(stmt)
-            data = res.scalar_one_or_none()
+            data =  res.first()
             if data is not None:
                 user_data = data
                 return {
@@ -204,7 +204,9 @@ async def get_me(username:str) -> dict:
                     "date of subscribtion to end":user_data[4]
                 }
         except Exception as e:
-            return Exception(f"Error : {e}") 
+            return  Exception(f"Error : {e}") 
+        
+
 async def unsub_all_users_whos_sub_is_ending_today() -> List[str]:           
     async with AsyncSession(async_engine) as conn:
         try:

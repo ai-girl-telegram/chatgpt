@@ -49,3 +49,18 @@ def subscribe_user(username:str):
             print(resp.text)
             print(resp.status_code)
             return resp.json()
+def get_me_request(username:str):
+    url = f"{BASE_URl}/getme"
+    data = {
+            "username":username
+        }
+    headers = {
+        "X-Signature":generate_siganture(data),
+        "X-Timestamp":str(int(time.time()))
+    }
+    resp = requests.post(url,json = data,headers=headers)
+    if resp.status_code != 200:
+        return False
+    else:
+        return resp.json()
+print(get_me_request("ivan2"))    
