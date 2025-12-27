@@ -205,16 +205,16 @@ async def get_me(username:str) -> dict:
                 }
         except Exception as e:
             return Exception(f"Error : {e}") 
-def unsub_all_users_whos_sub_is_ending_today() -> List[str]:           
-    with sync_engine.connect() as conn:
+async def unsub_all_users_whos_sub_is_ending_today() -> List[str]:           
+    async with AsyncSession(async_engine) as conn:
         try:
             stmt = select(table.c.username).where(and_(
                 table.c.sub == True,
                 table.c.date == datetime.now().date()
             ))
-            res = conn.execute(stmt)
+            res = await conn.execute(stmt)
             data = res.fetchall()
-            # havent writen yet (tired)
+            print(data)
         except Exception as e:
             return Exception(f"Error : {e}")    
         
